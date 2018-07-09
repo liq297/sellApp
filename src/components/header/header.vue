@@ -65,7 +65,7 @@
        </transition>
     </div>
 </template>
-
+// your code
 <script type='text/ecmascript-6'>
     import star from 'src/components/star/star.vue';
     export default{
