@@ -1,8 +1,8 @@
 <template>
     <div class="goods">
-        <div class="menu-wrapper" v-el:menu-wrapper>
-            <ul>
-                <li v-for="item in goods" :key="item.goods" class="menu-item">
+        <div class="menu-wrapper" ref="menuWrapper">
+            <ul class="content">
+                <li v-for="(item,index) in goods" :key="item.goods" class="menu-item" :class="{'current':currentIndex==index}" @click="selectMenu(index,$event)">
                     <span class="text border-1px">
                         <span v-show="item.type>0" class="icon" :class="classMap[item.type]"></span>
                         <span >{{item.name}}</span>
@@ -10,9 +10,9 @@
                 </li>
             </ul>
         </div>
-        <div class="foods-wrapper" v-el="food-wrapper">
-            <ul>
-                <li v-for="item in goods" :key="item.id" class="food-list">
+        <div class="foods-wrapper" ref="foodWrapper">
+            <ul class="content">
+                <li v-for="item in goods" :key="item.id" class="food-list food-list-hook">
                     <h1 class="title">{{item.name}}</h1>
                     <ul>
                         <li v-for="food in item.foods" class="food-item  border-1px" :key="food.id">
@@ -45,12 +45,26 @@
     export default{
         data(){
             return {
-                goods:[]
+                goods:[],
+                listHeight:[],
+                scrollY:0
             }
         },
         props:{
             seller:{
                 type:Object
+            }
+        },
+        computed:{
+            currentIndex(){
+                for(let i=0;i<this.listHeight.length;i++){
+                    let height1 = this.listHeight[i];
+                    let height2 = this.listHeight[i+1];
+                    if(!height2 || (this.scrollY>=height1 && this.scrollY<height2)){
+                        return i;
+                    }
+                }
+                return 0;
             }
         },
         created(){
@@ -60,13 +74,40 @@
                 this.goods = response;
                 this.$nextTick(()=>{
                     this._initScroll();
+                    this._calculateHeight();
                 });
             });
         },
         methods:{
             _initScroll(){
-                this.menuScroll = new BScroll(this.$els.menuWrapper,{});
-                this.foodScroll = new BScroll(this.$els.foodWrapper,{});
+                console.log(this.$refs.menuWrapper);
+                this.menuScroll = new BScroll(this.$refs.menuWrapper,{
+                    click:true
+                });
+                this.foodScroll = new BScroll(this.$refs.foodWrapper,{
+                    probeType:3
+                });
+                this.foodScroll.on('scroll',(pos)=>{
+                    this.scrollY = Math.abs(Math.round(pos.y));
+                });
+            },
+            _calculateHeight(){
+                let foodList = this.$refs.foodWrapper.getElementsByClassName("food-list-hook");
+                let height = 0;
+                this.listHeight.push(height);
+                for(let i=0; i<foodList.length;i++){
+                    let item = foodList[i];
+                    height += item.clientHeight;
+                    this.listHeight.push(height);
+                }
+            },
+            selectMenu(index,event){
+                if(!event._constructed){
+                    return;
+                }
+                let foodList = this.$refs.foodWrapper.getElementsByClassName("food-list-hook");
+                let el = foodList[index];
+                this.foodScroll.scrollToElement(el,300);
             }
         }
     };
@@ -102,6 +143,9 @@
                 .icon
                     flex 0 0 57px
                     margin-right 10px
+                    img 
+                        width 50px
+                        height 50px
                 .content
                     flex 1
                     .name
@@ -116,8 +160,9 @@
                         color rgb(147,153,159)
                     .desc
                         margin-bottom 8px
+                        line-height 14px
                     .extra
-                        &.count
+                        .count
                             margin-right 12px
                     .price
                         font-weight 700
@@ -141,6 +186,14 @@
                 height 54px
                 width 56px
                 line-height 14px
+                &.current
+                    position relative
+                    margin-top -1px
+                    z-index 10
+                    font-weight 700
+                    background #ffffff
+                    .text
+                        border-none()
                 .icon
                     display inline-block
                     vertical-align top
